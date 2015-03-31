@@ -1,0 +1,5 @@
+ftdi-ft232r (1.2.4) unstable; urgency=low
+
+  * Initial release.
+
+ -- Ed Swierk <eswierk@cs.stanford.edu>  Tue, 31 Mar 2015 10:19:02 -0700

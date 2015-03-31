@@ -1,0 +1,13 @@
+Source: ftdi-ft232r
+Section: misc
+Priority: optional
+Maintainer: Ed Swierk <eswierk@cs.stanford.edu>
+Build-Depends: debhelper (>= 9), libftdi-dev
+Standards-Version: 3.8.4
+
+Package: ftdi-ft232r
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Tool for configuring the FT232R chip
+ This package provides a tool for reconfiguring the FTDI FT232R chip,
+ eliminating the need for FTDI's MProg/FTProg (MS-Windows) packages.
