@@ -1,3 +1,5 @@
+Version 1.25: (courtesy of David Pello)
+	-- use inttypes.h for portable int/short/long types and sizes
 Version 1.24: (courtesy of Nils Eilers)
 	-- fixed exit code on success to be 0 instead of EINVAL
 	-- added --self-powered flag

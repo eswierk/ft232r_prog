@@ -26,8 +26,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ftdi.h>
+#include <inttypes.h>
 
-#define MYVERSION	"1.24"
+#define MYVERSION	"1.25"
 
 static struct ftdi_context ftdi;
 static int verbose = 0;
@@ -198,22 +199,22 @@ struct eeprom_fields {
 	unsigned char		BM_type_chip;		/* from libftdi-0.18, missing in 0.19 */
 
 	/* These are not actually eeprom values; here for convenience */
-	unsigned short		old_vid;
-	unsigned short		old_pid;
+	uint16_t		old_vid;
+	uint16_t		old_pid;
 	const char		*old_serno;
-	unsigned short		new_vid;
-	unsigned short		new_pid;
+	uint16_t		new_vid;
+	uint16_t		new_pid;
 };
 
 static void dumpmem (const char *msg, void *addr, int len)
 {
 	char *data = addr, hex[3 * 16 + 1], ascii[17];
-	unsigned int i, offset = 0;
+	uint32_t i, offset = 0;
 
 	if (msg)
 		printf("%s:\n", msg);
 	for (i = 0; i < len;) {
-		unsigned int i16 = i % 16;
+		uint32_t i16 = i % 16;
 		unsigned char c = data[i];
 		sprintf(hex + (3 * i16), " %02x", c);
 		ascii[i16] = (c < ' ' || c > '~') ? '.' : c;
@@ -227,10 +228,10 @@ static void dumpmem (const char *msg, void *addr, int len)
 	}
 }
 
-static unsigned short calc_crc (void *addr, int len)
+static uint16_t calc_crc (void *addr, int len)
 {
-	unsigned int i;
-	unsigned short crc = 0xaaaa;
+	uint32_t i;
+	uint16_t crc = 0xaaaa;
 	unsigned char *d8 = addr;
 
 	for (i = 0; i < len - 2; i += 2) {
@@ -250,11 +251,11 @@ static void do_close (void)
 	ftdi_usb_close(&ftdi);
 }
 
-static unsigned short verify_crc (void *addr, int len)
+static uint16_t verify_crc (void *addr, int len)
 {
-	unsigned short crc    = calc_crc(addr, len);
+	uint16_t crc    = calc_crc(addr, len);
 	unsigned char *d8     = addr;
-	unsigned short actual = d8[len-2] | (d8[len-1] << 8);
+	uint16_t actual = d8[len-2] | (d8[len-1] << 8);
 
 	if (crc != actual) {
 		fprintf(stderr, "Bad CRC: crc=0x%04x, actual=0x%04x\n", crc, actual);
@@ -264,9 +265,9 @@ static unsigned short verify_crc (void *addr, int len)
 	return crc;
 }
 
-static unsigned short update_crc (void *addr, int len)
+static uint16_t update_crc (void *addr, int len)
 {
-	unsigned short crc = calc_crc(addr, len);
+	uint16_t crc = calc_crc(addr, len);
 	unsigned char *d8  = addr;
 
 	d8[len-2] = crc;
@@ -302,7 +303,7 @@ static unsigned long unsigned_val (const char *arg, unsigned long max)
 
 static void ee_dump (struct eeprom_fields *ee)
 {
-	unsigned int c;
+	uint32_t c;
 
 	printf("       eeprom_size = %d\n",	ee->libftdi.size);
 	printf("         vendor_id = 0x%04x\n",	ee->libftdi.vendor_id);
@@ -340,12 +341,12 @@ static void ee_dump (struct eeprom_fields *ee)
 	}
 };
 
-static unsigned int calc_extras_offset (unsigned char *eeprom)
+static uint32_t calc_extras_offset (unsigned char *eeprom)
 {
-	unsigned int str1 = (eeprom[0x0e] & 0x7f) + eeprom[0x0f];
-	unsigned int str2 = (eeprom[0x10] & 0x7f) + eeprom[0x11];
-	unsigned int str3 = (eeprom[0x12] & 0x7f) + eeprom[0x13];
-	unsigned int offset;
+	uint32_t str1 = (eeprom[0x0e] & 0x7f) + eeprom[0x0f];
+	uint32_t str2 = (eeprom[0x10] & 0x7f) + eeprom[0x11];
+	uint32_t str3 = (eeprom[0x12] & 0x7f) + eeprom[0x13];
+	uint32_t offset;
 
 	if (str3 > str2)
 		offset = (str3 > str1) ? str3 : str1;
@@ -354,7 +355,7 @@ static unsigned int calc_extras_offset (unsigned char *eeprom)
 	return offset;
 }
 
-static unsigned int encode_string (void *eeprom, int desc, int offset, char *s)
+static uint32_t encode_string (void *eeprom, int desc, int offset, char *s)
 {
 	unsigned char c, *u8 = eeprom, slen = (strlen(s) + 1) * 2;
 
@@ -374,7 +375,7 @@ static unsigned int encode_string (void *eeprom, int desc, int offset, char *s)
 
 static void ft232r_eprom_build (struct eeprom_fields *ee, unsigned char *eeprom)
 {
-	unsigned int len = ee->libftdi.size;
+	uint32_t len = ee->libftdi.size;
 	int offset = 0x18;
 
 	memset(eeprom, 0, len);
@@ -420,7 +421,7 @@ static void ft232r_eprom_build (struct eeprom_fields *ee, unsigned char *eeprom)
  */
 static void ee_encode_extras (unsigned char *eeprom, int len, struct eeprom_fields *ee)
 {
-	unsigned int extras_offset = calc_extras_offset(eeprom);
+	uint32_t extras_offset = calc_extras_offset(eeprom);
 
 	memcpy(eeprom + extras_offset, ee->extras, len - extras_offset - 2);
 	if (ee->pnp_enabled)
@@ -429,7 +430,7 @@ static void ee_encode_extras (unsigned char *eeprom, int len, struct eeprom_fiel
 		eeprom[extras_offset + 2] &= ~1;
 }
 
-static unsigned short ee_encode (unsigned char *eeprom, int len, struct eeprom_fields *ee)
+static uint16_t ee_encode (unsigned char *eeprom, int len, struct eeprom_fields *ee)
 {
 	int ret;
 
@@ -486,7 +487,7 @@ static unsigned short ee_encode (unsigned char *eeprom, int len, struct eeprom_f
  */
 static void ee_decode_extras (unsigned char *eeprom, int len, struct eeprom_fields *ee)
 {
-	unsigned int extras_offset = calc_extras_offset(eeprom);
+	uint32_t extras_offset = calc_extras_offset(eeprom);
 
 	memcpy(ee->extras, eeprom + extras_offset, len - extras_offset - 2);
 	ee->pnp_enabled = eeprom[extras_offset + 2] & 0x01;
@@ -567,7 +568,7 @@ static void show_help (FILE *fp)
 	fputc('\n', fp);
 }
 
-static unsigned short ee_read_and_verify (void *eeprom, int len)
+static uint16_t ee_read_and_verify (void *eeprom, int len)
 {
 	if (ftdi_read_eeprom(&ftdi, eeprom)) {
 		fprintf(stderr, "ftdi_read_eeprom() failed: %s\n", ftdi_get_error_string(&ftdi));
@@ -729,9 +730,9 @@ int main (int argc, char *argv[])
 {
 	const char *slash;
 	unsigned char old[256] = {0,}, new[256] = {0,};
-	unsigned short new_crc;
+	uint16_t new_crc;
 	struct eeprom_fields ee;
-	unsigned int len = 128;
+	uint32_t len = 128;
 
 	myname = argv[0];
 	slash = strrchr(myname, '/');

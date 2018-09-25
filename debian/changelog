@@ -1,3 +1,9 @@
+ftdi-ft232r (1.25) unstable; urgency=low
+
+  * Merge changes from upstream.
+
+ -- Ed Swierk <eswierk@gmail.com>  Mon, 24 Sep 2018 19:15:02 -0700
+
 ftdi-ft232r (1.2.4) unstable; urgency=low
 
   * Initial release.
